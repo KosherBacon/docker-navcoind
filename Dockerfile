@@ -1,4 +1,4 @@
-FROM php:5.6-apache
+FROM debian:stretch-slim
 MAINTAINER Sebastian Ponti <sebaponti@gmail.com>
 
 ARG USER_ID
@@ -14,16 +14,16 @@ RUN groupadd -g ${GROUP_ID} navcoin \
       && useradd -u ${USER_ID} -g navcoin -s /bin/bash -m -d /navcoin navcoin
 
 # Enviroments for building
-ENV GIT_REVISION_CORE=${GIT_REVISION_CORE:-'v4.0.6'}
+ENV GIT_REVISION_CORE=${GIT_REVISION_CORE:-'v4.1.1'}
 
 # Installing packages
 RUN apt-get update && apt-get install -yq --no-install-recommends \
       # Build requirements
       build-essential libcurl3-dev libtool autotools-dev automake \
-      pkg-config libssl-dev libevent-dev bsdmainutils libzmq3-dev \
-      libqrencode-dev qrencode wget curl \
+      pkg-config libssl1.0-dev libevent-dev bsdmainutils libzmq3-dev \
+      libqrencode-dev qrencode wget curl dirmngr gnupg2 ca-certificates \
       # PHP + Apache dependencies
-      php5-cli php5-curl \
+      php7.0-cli php7.0-curl \
       # Boost library
       libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
       libboost-program-options-dev libboost-test-dev libboost-thread-dev \
@@ -31,12 +31,12 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
       libminiupnpc-dev \
       # Git cli
       git-core \
-      && apt-get install -o Dpkg::Options::="--force-confold" --force-yes -yq libapache2-mod-php5 \
+      && apt-get install -o Dpkg::Options::="--force-confold" --force-yes -yq libapache2-mod-php7.0 \
       && apt-get clean \
       && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install gosu
-RUN gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
+RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
       && curl -o /usr/local/bin/gosu -fSL https://github.com/tianon/gosu/releases/download/1.9/gosu-$(dpkg --print-architecture) \
       && curl -o /usr/local/bin/gosu.asc -fSL https://github.com/tianon/gosu/releases/download/1.9/gosu-$(dpkg --print-architecture).asc \
       && gpg --verify /usr/local/bin/gosu.asc \
@@ -78,17 +78,19 @@ ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 
 # Create ssl certificate
 RUN mkdir /etc/apache2/ssl && cd /etc/apache2/ssl \
-      && openssl genrsa -des3 -passout pass:x -out tmp-navpi-ssl.key 2048 \
-      && openssl rsa -passin pass:x -in tmp-navpi-ssl.key -out navpi-ssl.key \
+      && openssl genrsa -out navpi-ssl.key 4096  \
+      #&& openssl rsa -passin pass:x -in tmp-navpi-ssl.key -out navpi-ssl.key \
       && openssl req -new -key navpi-ssl.key -out navpi-ssl.csr \
          -subj "/C=NZ/ST=Auckland/L=Auckland/O=Nav Coin/OU=Nav Pi/CN=my.navpi.org" \
       && openssl x509 -req -days 365 -in navpi-ssl.csr -signkey navpi-ssl.key -out navpi-ssl.crt \
-      && rm tmp-navpi-ssl.key navpi-ssl.csr \
+      && rm navpi-ssl.csr \
       # Enable apache modules and site
-      && a2enmod rewrite && a2enmod php5 && a2enmod ssl \
+      && a2enmod rewrite && a2enmod php7.0 && a2enmod ssl \
       && a2ensite navpi.conf && a2dissite 000-default.conf
 
 VOLUME ["/navcoin"]
+
+COPY scripts/apache2-foreground /usr/bin/
 
 EXPOSE 44440 44444
 

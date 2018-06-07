@@ -14,14 +14,17 @@ RUN groupadd -g ${GROUP_ID} navcoin \
       && useradd -u ${USER_ID} -g navcoin -s /bin/bash -m -d /navcoin navcoin
 
 # Enviroments for building
-ENV GIT_REVISION_CORE=${GIT_REVISION_CORE:-'v4.1.1'}
+ENV GIT_REVISION_CORE=${GIT_REVISION_CORE:-'4.2.1-hotfix'}
+ENV VERSION=$GIT_REVISION_CORE
 
 # Installing packages
 RUN apt-get update && apt-get install -yq --no-install-recommends \
+      # System requirements
+      dirmngr gnupg2 wget curl ca-certificates netbase \
       # Build requirements
       build-essential libcurl3-dev libtool autotools-dev automake \
       pkg-config libssl1.0-dev libevent-dev bsdmainutils libzmq3-dev \
-      libqrencode-dev qrencode wget curl dirmngr gnupg2 ca-certificates \
+      libqrencode-dev qrencode \
       # PHP + Apache dependencies
       php7.0-cli php7.0-curl \
       # Boost library
@@ -61,6 +64,9 @@ RUN export BDB_FOLDER="/usr/local/berkeley-db-4.8" && cd /tmp \
      && make install \
      # Install and configure navcoin core
      && cd /tmp \
+     #&& wget "https://github.com/NAVCoin/navcoin-core/releases/download/${VERSION}/navcoin-${VERSION}.tar.gz" \
+     #&& tar -xzf navcoin-${GIT_REVISION_CORE}.tar.gz \
+     #&& cd navcoin-${GIT_REVISION_CORE} \
      && git clone -b $GIT_REVISION_CORE https://github.com/NAVCoin/navcoin-core.git navcoin-core \
      && cd navcoin-core \
      && ./autogen.sh \

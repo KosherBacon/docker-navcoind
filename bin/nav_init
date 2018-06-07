@@ -4,7 +4,7 @@ set -ex
 
 # This shouldn't be in the Dockerfile or containers built from the same image
 # will have the same credentials.
-if [ ! -e "$HOME/.navcoin4/navcoin.conf" ]; then
+if [ ! -e "$HOME/.navcoin4/navcoin.conf" || : ]; then
     mkdir -p $HOME/.navcoin4
 
     echo "Creating navcoin.conf"
